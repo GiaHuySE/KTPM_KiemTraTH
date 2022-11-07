@@ -18,6 +18,7 @@ import com.example.DriverService.Entity.Driver;
 import com.example.DriverService.Model.Customer;
 import com.example.DriverService.Model.RequireResponse;
 import com.example.DriverService.Repositoty.DriverRepo;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 
 
 
@@ -26,7 +27,7 @@ import com.example.DriverService.Repositoty.DriverRepo;
 @RequestMapping("/driver")
 public class DriverController {
 	
-	private static final String USER_SERVIVE="vaccinationService";
+	private static final String USER_SERVIVE="driverService";
 	private int attempt = 1;
 	@Autowired
 	private DriverRepo driverRepo;
@@ -48,9 +49,7 @@ public class DriverController {
 	}
 	
 	@GetMapping("/id/{id}")
-	//@CircuitBreaker(name = USER_SERVIVE,fallbackMethod = "handleCitizenDownTime")
-	//@Retry(name = USER_SERVIVE,fallbackMethod = "handleCitizenDownTime")
-	//@RateLimiter(name = USER_SERVIVE,fallbackMethod = "handleCitizenDownTime")
+	@RateLimiter(name = USER_SERVIVE,fallbackMethod = "handleCustomerDownTime")
 	public ResponseEntity<RequireResponse> getAllDataBasedonCenterId(@PathVariable Integer id){
 		RequireResponse requireResponse = new RequireResponse();
 		Driver driver = driverRepo.findById(id).get();
@@ -61,4 +60,12 @@ public class DriverController {
 		return new ResponseEntity<RequireResponse>(requireResponse,HttpStatus.OK);
 	}
 	
+	
+	public ResponseEntity<RequireResponse> handleCustomerDownTime(@PathVariable Integer id,Exception e){
+		RequireResponse requireResponse = new RequireResponse();
+		Driver driver = driverRepo.findById(id).get();
+		requireResponse.setDriver(driver);
+		System.out.println("retry method called "+attempt++ +" times"+" at "+ new Date());
+		return new ResponseEntity<RequireResponse>(requireResponse, HttpStatus.OK);
+	}
 }
